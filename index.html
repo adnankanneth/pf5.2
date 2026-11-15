@@ -5,42 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Add transaction</title>
 <style>
-  :root{--bg:#0f1720;--card:#17212d;--line:#2a3849;--text:#e9eef4;--mute:#8fa1b5;--accent:#f0b64a;--ok:#5ad19a;--err:#ff7b7b}
+  :root{--bg:#f3f5f9;--card:#fff;--line:#e3e8ef;--text:#111827;--mute:#6b7280;--field:#f6f7fb;--accent:#e5484d;--ok:#12a36b;--err:#e5484d;--shadow:0 1px 2px rgba(16,24,40,.04),0 10px 30px rgba(16,24,40,.07)}
+  @media (prefers-color-scheme:dark){:root{--bg:#0c0f14;--card:#151a22;--line:#242c38;--text:#eef1f6;--mute:#8b96a8;--field:#1b222c;--ok:#3ed598;--err:#ff6b70;--shadow:0 10px 30px rgba(0,0,0,.35)}}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center;padding:16px}
-  main{width:100%;max-width:460px}
-  h1{font-size:1.25rem;margin:8px 0 16px}
-  form,#login{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:14px}
-  label{display:grid;gap:6px;color:var(--mute);font-size:.85rem}
-  input,select,textarea,button{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
-  input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .types{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-  .types button{display:grid;place-items:center;padding:12px 0;cursor:pointer}
-  .types button svg{width:26px;height:26px;stroke:var(--mute);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .types button[aria-pressed=true]{border-color:var(--accent);background:#2a2415}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;padding:20px 16px 40px;-webkit-font-smoothing:antialiased}
+  main{width:100%;max-width:440px}
+  h1{font-size:1.15rem;font-weight:650;margin:6px 4px 16px;letter-spacing:-.01em}
+  form{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;display:grid;gap:16px;box-shadow:var(--shadow)}
+  label{display:grid;gap:6px;color:var(--mute);font-size:.78rem;font-weight:550}
+  input,select,textarea{font:inherit;font-size:1rem;color:var(--text);background:var(--field);border:1.5px solid transparent;border-radius:12px;padding:12px 14px;width:100%;transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+  select{appearance:none;-webkit-appearance:none;padding-right:34px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b96a8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
+  textarea{resize:none}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .types{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--field);padding:4px;border-radius:16px}
+  .types button{display:grid;place-items:center;padding:11px 0;border:0;border-radius:12px;background:transparent;cursor:pointer;transition:background .15s}
+  .types button svg{width:24px;height:24px;stroke:var(--mute);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .types button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 4px rgba(16,24,40,.12)}
   .types button[aria-pressed=true] svg{stroke:var(--accent)}
-  #typeName{text-align:center;font-size:.9rem;color:var(--accent);margin-top:-6px}
-  .check{display:flex;align-items:center;gap:10px;color:var(--text);font-size:1rem}
-  .check input{width:20px;height:20px;accent-color:var(--accent)}
-  .save{background:var(--accent);color:#1b1405;font-weight:700;border:0;cursor:pointer}
+  .types button:focus-visible{outline:2px solid var(--accent)}
+  #typeName{text-align:center;font-size:.85rem;font-weight:650;color:var(--accent);margin-top:-6px}
+  .amount{text-align:center}
+  .amount input{background:transparent;border:0;border-bottom:2px solid var(--line);border-radius:0;font-size:2.4rem;font-weight:650;text-align:center;padding:6px 0;letter-spacing:-.02em;box-shadow:none}
+  .amount input:focus{border-color:var(--accent);box-shadow:none}
+  .amount input::placeholder{color:var(--line)}
+  .check{display:flex;align-items:center;justify-content:space-between;background:var(--field);border-radius:12px;padding:12px 14px;color:var(--text);font-size:1rem;font-weight:500}
+  .check input{appearance:none;-webkit-appearance:none;width:46px;height:28px;padding:0;border-radius:14px;background:var(--line);position:relative;cursor:pointer;flex:none}
+  .check input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+  .check input:checked{background:var(--accent)}
+  .check input:checked::after{transform:translateX(18px)}
+  .save{border:0;border-radius:14px;padding:15px;font:inherit;font-size:1rem;font-weight:650;color:#fff;background:var(--accent);cursor:pointer;width:100%;transition:transform .1s,opacity .15s}
+  .save:active{transform:scale(.98)}
   .save:disabled{opacity:.6}
-  #msg{min-height:1.2em;font-size:.9rem;text-align:center}
-  #logout{background:none;border:0;color:var(--mute);width:auto;padding:4px;font-size:.8rem;cursor:pointer;justify-self:end}
-  [hidden]{display:none!important}
+  .save:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:2px}
+  #msg{min-height:1.2em;font-size:.9rem;text-align:center;font-weight:550}
 </style>
 </head>
 <body>
 <main>
-  <h1>Add transaction</h1>
+  <h1>New transaction</h1>
 
   <form id="form">
     <div class="types" id="types" role="group" aria-label="Type"></div>
     <div id="typeName"></div>
 
+    <label class="amount">Amount<input id="amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" required></label>
+
     <div class="row">
       <label>Date<input id="date" type="date" required></label>
-      <label>Amount<input id="amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" required></label>
+      <label>Category<select id="cata"></select></label>
     </div>
 
     <div class="row">
@@ -48,11 +61,9 @@
       <label>To<select id="to"></select></label>
     </div>
 
-    <label>Category<select id="cata"></select></label>
+    <label>Remarks<textarea id="remarks" rows="2" placeholder="Add a note"></textarea></label>
 
-    <label>Remarks<textarea id="remarks" rows="2"></textarea></label>
-
-    <label class="check"><input id="plan" type="checkbox"> Plan</label>
+    <label class="check">Plan<input id="plan" type="checkbox"></label>
 
     <button class="save" id="saveBtn" type="submit">Save transaction</button>
     <div id="msg" role="status"></div>
@@ -62,7 +73,7 @@
 <script>
 // 1) Paste your values from Supabase: Project Settings > API
 const SUPABASE_URL = "https://nfczmefycwbhjxweleif.supabase.co/rest/v1/";
-const SUPABASE_KEY = "sb_publishable_qcUEnm2TbUwPLc-Wa1NP6w_d3VFBrnp";
+const SUPABASE_KEY = "sb_publishable_qcUEnm2TbUwPLc-Wa1NP6w_d3VFBrnp"
 
 let BASE = SUPABASE_URL.trim().replace(/\/+$/, "");
 if (!BASE.includes("/rest/v1")) BASE += "/rest/v1";
@@ -113,6 +124,8 @@ function pickType(id) {
     b.setAttribute("aria-pressed", String(Number(b.dataset.id) === id)));
   const name = (TYPES.find(r => r.id === id) || {})["type name"] || "";
   $("typeName").textContent = name;
+  const COL = { "expense":"#e5484d", "income":"#12a36b", "other income":"#0ea5a4", "transfer":"#3b82f6" };
+  document.documentElement.style.setProperty("--accent", COL[name.toLowerCase()] || "#6366f1");
   const k = name.toLowerCase(), b = bankId();
   if (k === "expense") { $("from").value = ""; $("to").value = b; }
   else if (k === "income" || k === "other income") { $("from").value = b; $("to").value = ""; }
