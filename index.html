@@ -20,6 +20,7 @@
   .types button svg{width:26px;height:26px;stroke:var(--mute);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .types button[aria-pressed=true]{border-color:var(--accent);background:#2a2415}
   .types button[aria-pressed=true] svg{stroke:var(--accent)}
+  #typeName{text-align:center;font-size:.9rem;color:var(--accent);margin-top:-6px}
   .check{display:flex;align-items:center;gap:10px;color:var(--text);font-size:1rem}
   .check input{width:20px;height:20px;accent-color:var(--accent)}
   .save{background:var(--accent);color:#1b1405;font-weight:700;border:0;cursor:pointer}
@@ -35,6 +36,7 @@
 
   <form id="form">
     <div class="types" id="types" role="group" aria-label="Type"></div>
+    <div id="typeName"></div>
 
     <div class="row">
       <label>Date<input id="date" type="date" required></label>
@@ -57,13 +59,28 @@
   </form>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 // 1) Paste your values from Supabase: Project Settings > API
 const SUPABASE_URL = "https://nfczmefycwbhjxweleif.supabase.co/rest/v1/";
 const SUPABASE_KEY = "sb_publishable_qcUEnm2TbUwPLc-Wa1NP6w_d3VFBrnp";
 
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const BASE = SUPABASE_URL.trim().replace(/\/+$/, "") + "/rest/v1/";
+const HEAD = { apikey: SUPABASE_KEY.trim(), "Content-Type": "application/json" };
+async function get(table) {
+  try {
+    const r = await fetch(BASE + table + "?select=*&order=id", { headers: HEAD });
+    const j = await r.json();
+    if (!r.ok) return { error: { message: j.message || "HTTP " + r.status } };
+    return { data: j };
+  } catch (e) { return { error: { message: e.message } }; }
+}
+async function add(row) {
+  try {
+    const r = await fetch(BASE + "transaction", { method: "POST", headers: { ...HEAD, Prefer: "return=minimal" }, body: JSON.stringify(row) });
+    if (!r.ok) { const j = await r.json(); return { error: { message: j.message || "HTTP " + r.status } }; }
+    return {};
+  } catch (e) { return { error: { message: e.message } }; }
+}
 const $ = id => document.getElementById(id);
 let typeId = null;
 
@@ -83,20 +100,32 @@ function fillSelect(el, rows, key, blank) {
     rows.map(r => `<option value="${r.id}">${r[key]}</option>`).join("");
 }
 
+let TYPES = [];
+function bankId() {
+  const o = [...$("from").options].find(o => o.text.trim().toLowerCase() === "bank");
+  return o ? o.value : "";
+}
 function pickType(id) {
   typeId = id;
   document.querySelectorAll("#types button").forEach(b =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.id) === id)));
+  const name = (TYPES.find(r => r.id === id) || {})["type name"] || "";
+  $("typeName").textContent = name;
+  const k = name.toLowerCase(), b = bankId();
+  if (k === "expense") { $("from").value = ""; $("to").value = b; }
+  else if (k === "income" || k === "other income") { $("from").value = b; $("to").value = ""; }
+  else if (k === "transfer") { $("from").value = b; $("to").value = b; }
 }
 
 async function loadLists() {
   const [t, a, c] = await Promise.all([
-    db.from("type").select("*").order("id"),
-    db.from("accounts").select("*").order("id"),
-    db.from("cata").select("*").order("id")
+    get("type"),
+    get("accounts"),
+    get("cata")
   ]);
   if (t.error || a.error || c.error) { say("Error: " + (t.error || a.error || c.error).message, false); return; }
 
+  TYPES = t.data;
   $("types").innerHTML = t.data.map(r => {
     const name = r["type name"];
     const icon = ICONS[name.toLowerCase()] || '<circle cx="12" cy="12" r="3"/>';
@@ -105,11 +134,12 @@ async function loadLists() {
   }).join("");
   document.querySelectorAll("#types button").forEach(b =>
     b.onclick = () => pickType(Number(b.dataset.id)));
-  if (t.data.length) pickType(t.data[0].id);
 
   fillSelect($("from"), a.data, "account name", "From");
   fillSelect($("to"), a.data, "account name", "To");
   fillSelect($("cata"), c.data, "cata name", "Category");
+  const d = t.data.find(r => r["type name"].toLowerCase() === "expense") || t.data[0];
+  if (d) pickType(d.id);
 }
 
 async function showApp() {
@@ -133,7 +163,7 @@ $("form").onsubmit = async e => {
     to: $("to").value || null,
     plan: $("plan").checked
   };
-  const { error } = await db.from("transaction").insert(row);
+  const { error } = await add(row);
   $("saveBtn").disabled = false;
   if (error) { say(error.message, false); return; }
   say("Saved", true);
