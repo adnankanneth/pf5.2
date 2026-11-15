@@ -62,7 +62,7 @@
 // 1) Paste your values from Supabase: Project Settings > API
 const SUPABASE_URL = "https://nfczmefycwbhjxweleif.supabase.co/rest/v1/";
 const SUPABASE_KEY = "sb_publishable_qcUEnm2TbUwPLc-Wa1NP6w_d3VFBrnp";
-  
+
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 let typeId = null;
@@ -91,11 +91,11 @@ function pickType(id) {
 
 async function loadLists() {
   const [t, a, c] = await Promise.all([
-    db.from("type").select("id,\"type name\"").order("id"),
-    db.from("accounts").select("id,\"account name\"").order("\"account name\""),
-    db.from("cata").select("id,\"cata name\"").order("\"cata name\"")
+    db.from("type").select("*").order("id"),
+    db.from("accounts").select("*").order("id"),
+    db.from("cata").select("*").order("id")
   ]);
-  if (t.error || a.error || c.error) { say("Could not load lists. Check the policies.", false); return; }
+  if (t.error || a.error || c.error) { say("Error: " + (t.error || a.error || c.error).message, false); return; }
 
   $("types").innerHTML = t.data.map(r => {
     const name = r["type name"];
@@ -145,4 +145,3 @@ init();
 </script>
 </body>
 </html>
-
