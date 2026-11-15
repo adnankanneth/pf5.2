@@ -61,10 +61,12 @@
 
 <script>
 // 1) Paste your values from Supabase: Project Settings > API
-const SUPABASE_URL = "https://nfczmefycwbhjxweleif.supabase.co";
+const SUPABASE_URL = "https://nfczmefycwbhjxweleif.supabase.co/rest/v1/";
 const SUPABASE_KEY = "sb_publishable_qcUEnm2TbUwPLc-Wa1NP6w_d3VFBrnp";
 
-const BASE = SUPABASE_URL.trim().replace(/\/+$/, "") + "/rest/v1/";
+let BASE = SUPABASE_URL.trim().replace(/\/+$/, "");
+if (!BASE.includes("/rest/v1")) BASE += "/rest/v1";
+BASE += "/";
 const HEAD = { apikey: SUPABASE_KEY.trim(), "Content-Type": "application/json" };
 async function get(table) {
   try {
