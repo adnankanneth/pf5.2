@@ -70,10 +70,8 @@
   </form>
 </main>
 
+<script src="config.js"></script>
 <script>
-// 1) Paste your values from Supabase: Project Settings > API
-const SUPABASE_URL = "https://nfczmefycwbhjxweleif.supabase.co/rest/v1/";
-const SUPABASE_KEY = "sb_publishable_qcUEnm2TbUwPLc-Wa1NP6w_d3VFBrnp"
 
 let BASE = SUPABASE_URL.trim().replace(/\/+$/, "");
 if (!BASE.includes("/rest/v1")) BASE += "/rest/v1";
