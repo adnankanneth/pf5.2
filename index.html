@@ -33,13 +33,7 @@
 <main>
   <h1>Add transaction</h1>
 
-  <div id="login" hidden>
-    <label>Email<input id="email" type="email" autocomplete="username"></label>
-    <label>Password<input id="pass" type="password" autocomplete="current-password"></label>
-    <button class="save" id="loginBtn" type="button">Sign in</button>
-  </div>
-
-  <form id="form" hidden>
+  <form id="form">
     <div class="types" id="types" role="group" aria-label="Type"></div>
 
     <div class="row">
@@ -60,7 +54,6 @@
 
     <button class="save" id="saveBtn" type="submit">Save transaction</button>
     <div id="msg" role="status"></div>
-    <button id="logout" type="button">Sign out</button>
   </form>
 </main>
 
@@ -102,7 +95,7 @@ async function loadLists() {
     db.from("accounts").select("id,\"account name\"").order("\"account name\""),
     db.from("cata").select("id,\"cata name\"").order("\"cata name\"")
   ]);
-  if (t.error || a.error || c.error) { say("Could not load lists. Check login and policies.", false); return; }
+  if (t.error || a.error || c.error) { say("Could not load lists. Check the policies.", false); return; }
 
   $("types").innerHTML = t.data.map(r => {
     const name = r["type name"];
@@ -120,24 +113,11 @@ async function loadLists() {
 }
 
 async function showApp() {
-  $("login").hidden = true;
-  $("form").hidden = false;
   $("date").value = today();
   await loadLists();
 }
 
-async function init() {
-  const { data } = await db.auth.getSession();
-  if (data.session) showApp(); else $("login").hidden = false;
-}
-
-$("loginBtn").onclick = async () => {
-  const { error } = await db.auth.signInWithPassword({ email: $("email").value, password: $("pass").value });
-  if (error) { alert(error.message); return; }
-  showApp();
-};
-
-$("logout").onclick = async () => { await db.auth.signOut(); location.reload(); };
+async function init() { await showApp(); }
 
 $("form").onsubmit = async e => {
   e.preventDefault();
