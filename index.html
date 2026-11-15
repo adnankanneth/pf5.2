@@ -79,6 +79,12 @@
 
 <script src="config.js"></script>
 <script>
+if (typeof SUPABASE_URL === "undefined" || typeof SUPABASE_KEY === "undefined") {
+  const m = document.getElementById("msg");
+  m.textContent = "config.js not found. Upload config.js next to index.html.";
+  m.style.color = "var(--err)";
+  throw new Error("config.js missing");
+}
 
 let BASE = SUPABASE_URL.trim().replace(/\/+$/, "");
 if (!BASE.includes("/rest/v1")) BASE += "/rest/v1";
