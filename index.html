@@ -1,3 +1,10 @@
+To change your app layout so that the pages themselves don't slide horizontally, but instead **only the bottom navigation bar indicator (or the active tab highlight)** moves like a sliding segmented control, we need to adjust the HTML and CSS architecture.
+
+Additionally, your dashboard is already set up to fetch data from Supabase via `fetchAll()` and `loadAll()`, but to make sure it functions properly, we must ensure your Supabase table RLS policies allow reading and that your separate `config.js` file properly defines `SUPABASE_URL` and `SUPABASE_KEY`.
+
+Here is the updated, unified `index.html` code with the tab bar slider modification:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,18 +18,19 @@
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
 
-  /* Pages + slide */
-  .pages{position:fixed;inset:0;overflow:hidden}
-  .track{display:flex;width:200%;height:100%;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
-  .page{width:50%;height:100%;overflow-y:auto;overscroll-behavior:contain;padding:20px 16px calc(110px + env(safe-area-inset-bottom));touch-action:pan-y}
+  /* Pages container - stacked instead of side-by-side */
+  .pages{position:fixed;inset:0 0 calc(90px + env(safe-area-inset-bottom)) 0;overflow:hidden}
+  .page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:20px 16px;touch-action:pan-y;display:none}
+  .page.active{display:block}
   .page>main{width:100%;max-width:440px;margin:0 auto}
   h1{font-size:1.15rem;font-weight:650;margin:6px 4px 16px;letter-spacing:-.01em}
 
-  /* Nav */
-  .nav{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:6px;padding:6px;border-radius:26px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 8px 30px rgba(16,24,40,.18);z-index:10}
-  .nav button{width:64px;height:46px;border:0;border-radius:20px;background:transparent;color:var(--mute);display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+  /* Sliding Nav Bar */
+  .nav{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;padding:4px;border-radius:26px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 8px 30px rgba(16,24,40,.18);z-index:10;position:fixed;width:148px}
+  .nav .thumb{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/2);border-radius:20px;background:var(--field);box-shadow:0 1px 4px rgba(16,24,40,.14);transition:transform .25s cubic-bezier(.3,.9,.3,1);pointer-events:none}
+  .nav button{position:relative;z-index:1;width:50%;height:46px;border:0;border-radius:20px;background:transparent;color:var(--mute);display:grid;place-items:center;cursor:pointer;transition:color .15s}
   .nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .nav button[aria-current=true]{background:var(--field);color:var(--accent)}
+  .nav button[aria-current=true]{color:var(--accent)}
 
   /* Form */
   form{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;display:grid;gap:16px;box-shadow:var(--shadow)}
@@ -108,10 +116,8 @@
 <body>
 
 <div class="pages" id="pages">
- <div class="track" id="track">
-
   <!-- ADD PAGE -->
-  <section class="page" id="pgAdd">
+  <section class="page active" id="pgAdd">
    <main>
     <h1>Add</h1>
     <form id="form">
@@ -192,11 +198,10 @@
     </div>
    </main>
   </section>
-
- </div>
 </div>
 
 <nav class="nav" aria-label="Pages">
+  <i class="thumb"></i>
   <button type="button" data-p="0" aria-label="Add" aria-current="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
   <button type="button" data-p="1" aria-label="Dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></button>
 </nav>
@@ -248,7 +253,7 @@ const today = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).
 const iso = (y, m, d) => new Date(Date.UTC(y, m, d)).toISOString().slice(0,10);
 const say = (t, ok) => { $("msg").textContent = t; $("msg").style.color = ok ? "var(--ok)" : "var(--err)"; };
 
-// ---------- Sliding segmented control ----------
+// ---------- Sliding segmented control helper ----------
 function makeSeg(el, onPick) {
   const th = el.querySelector(".thumb"), bs = [...el.querySelectorAll("button")], n = bs.length;
   el.style.setProperty("--n", n);
@@ -281,31 +286,32 @@ function makeSeg(el, onPick) {
   return { set };
 }
 
-// ---------- Pages ----------
+// ---------- Bottom Nav Sliding Thumb Setup ----------
+const navEl = document.querySelector(".nav");
+const navThumb = navEl.querySelector(".thumb");
+const navButtons = navEl.querySelectorAll("button");
+function updateNavSlider(p) {
+  navThumb.style.transform = `translateX(${p * 100}%)`;
+}
+
+// ---------- Pages Toggle ----------
 let page = 0, typeColor = "#e5484d";
 function applyAccent() {
   document.documentElement.style.setProperty("--accent", page === 0 ? typeColor : "#6366f1");
 }
 function go(p) {
   page = p;
-  $("track").style.transform = `translateX(${-p * 50}%)`;
-  document.querySelectorAll(".nav button").forEach(b => b.setAttribute("aria-current", String(Number(b.dataset.p) === p)));
+  document.querySelectorAll(".page").forEach((el, idx) => {
+    el.classList.toggle("active", idx === p);
+  });
+  navButtons.forEach((b, idx) => b.setAttribute("aria-current", String(idx === p)));
+  updateNavSlider(p);
   applyAccent();
+  if (p === 1) {
+    loadAll(); // Refreshes dashboard data from Supabase when switching to it
+  }
 }
-document.querySelectorAll(".nav button").forEach(b => b.onclick = () => go(Number(b.dataset.p)));
-
-let px = null, py = null;
-$("pages").addEventListener("pointerdown", e => {
-  if (e.target.closest(".seg,#calWrap,input,select,textarea")) { px = null; return; }
-  px = e.clientX; py = e.clientY;
-});
-$("pages").addEventListener("pointerup", e => {
-  if (px === null) return;
-  const dx = e.clientX - px, dy = e.clientY - py;
-  px = null;
-  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-  go(dx < 0 ? 1 : 0);
-});
+navButtons.forEach((b, idx) => b.onclick = () => go(idx));
 
 // ---------- Form ----------
 let typeId = null, typeSeg = null;
@@ -394,7 +400,6 @@ const nameOf = (list, key, id) => (list.find(r => r.id === id) || {})[key] || ""
 const kind = id => nameOf(TYPES, "type name", id).toLowerCase();
 const accKey = id => { const n = nameOf(ACCS, "account name", id).trim().toLowerCase(); return n === "bank" || n === "cash" ? n : null; };
 
-// Per-transaction effect on Bank / Cash. Income uses From, Expense uses To (your form defaults).
 function effect(t) {
   const k = kind(t.type), a = Number(t.amount) || 0, e = { bank: 0, cash: 0, inn: 0, out: 0 };
   if (k === "income" || k === "other income") {
@@ -446,7 +451,6 @@ function renderDash() {
     if (d >= lo && d <= hi) { inn += e.inn; out += e.out; list.push(t); }
   }
 
-  // balance + cards
   const bal = bank + cash;
   $("balLbl").textContent = "Balance · " + fmt(hi);
   $("balance").textContent = money(bal);
@@ -458,7 +462,6 @@ function renderDash() {
   $("cNet").textContent = money(inn - out);
   colorize($("cNet"), inn - out);
 
-  // calendar
   $("calTitle").textContent = new Date(Date.UTC(dY, dM, 1)).toLocaleString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
   const lead = new Date(Date.UTC(dY, dM, 1)).getUTCDay();
   const days = new Date(Date.UTC(dY, dM + 1, 0)).getUTCDate();
@@ -473,7 +476,6 @@ function renderDash() {
   }
   $("calGrid").innerHTML = h;
 
-  // list
   $("listRange").textContent = sel ? (sel.a === sel.b ? fmt(sel.a) : fmt(sel.a) + " – " + fmt(sel.b)) : $("calTitle").textContent;
   if (ERR) { $("recent").innerHTML = `<div class="empty">${esc(ERR)}</div>`; return; }
   if (!ALL.length) { $("recent").innerHTML = `<div class="empty">No data. If you have transactions, enable SELECT for anon on the transaction table.</div>`; return; }
@@ -489,10 +491,8 @@ function renderDash() {
   }).join("");
 }
 
-// mode tabs
 makeSeg($("modeSeg"), i => { mode = i; renderDash(); });
 
-// month nav
 function shiftMonth(d) {
   dM += d;
   if (dM < 0) { dM = 11; dY--; }
@@ -503,7 +503,6 @@ function shiftMonth(d) {
 $("prevM").onclick = () => shiftMonth(-1);
 $("nextM").onclick = () => shiftMonth(1);
 
-// calendar / graph switch
 function setView(v) {
   calView = v;
   $("vCal").classList.toggle("on", v === "cal");
@@ -515,7 +514,6 @@ function setView(v) {
 $("vCal").onclick = () => setView("cal");
 $("vGraph").onclick = () => setView("graph");
 
-// calendar tap + drag select
 let dragA = null, moved = false, lastKey = "";
 const cw = $("calWrap");
 cw.addEventListener("pointerdown", e => {
@@ -545,13 +543,13 @@ cw.addEventListener("pointerup", () => {
 });
 cw.addEventListener("pointercancel", () => { dragA = null; });
 
-// ---------- Start ----------
 async function showApp() {
   $("date").value = today();
   if (await loadLists()) await loadAll();
 }
-renderDash();
 showApp();
 </script>
 </body>
 </html>
+
+```
