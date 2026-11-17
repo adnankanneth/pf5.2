@@ -50,11 +50,6 @@
   .check-title { font-size:15px; font-weight:600; color:var(--text); text-transform:none; letter-spacing:0; }
   .check-row input[type="checkbox"] { width:22px; height:22px; margin:0; padding:0; accent-color:var(--orange); -webkit-appearance:checkbox; appearance:checkbox; cursor:pointer; flex-shrink:0; }
 
-  .type-grid { display:flex; gap:8px; width:100%; overflow-x:auto; }
-  .type-btn { flex:1; min-width:48px; height:48px; padding:0; border-radius:12px; border:1px solid var(--border); background:var(--input); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .18s cubic-bezier(.4,0,.2,1); }
-  .type-btn svg { width:20px; height:20px; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; fill:none; pointer-events:none; }
-  .type-btn.active { background:var(--primary); color:#FFF; border-color:var(--primary); box-shadow:0 4px 10px rgba(0,122,255,.28); transform:translateY(-1px); }
-
   .btn { width:100%; padding:14px; background:var(--primary); color:#FFF; border:none; border-radius:14px; font-size:16px; font-weight:600; cursor:pointer; }
   .btn:active { opacity:.85; transform:scale(.99); }
   .btn:disabled { opacity:.5; }
@@ -150,10 +145,33 @@
   .nav-item { flex:1; height:100%; display:flex; align-items:center; justify-content:center; color:var(--sub); position:relative; z-index:2; pointer-events:none; }
   .nav-item svg { width:20px; height:20px; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; fill:none; }
   .nav-item.active { color:#FFF; }
+
+  /* ---- new: type slider, amount-first, quick chips, category dots, saved check ---- */
+  .type-seg{position:relative;display:flex;height:52px;background:var(--seg);border-radius:14px;padding:3px;touch-action:none;user-select:none;cursor:pointer}
+  .type-pill{position:absolute;top:3px;left:3px;height:calc(100% - 6px);background:var(--primary);border-radius:11px;box-shadow:0 3px 10px rgba(0,122,255,.3);transition:transform .25s cubic-bezier(.32,.72,0,1);z-index:1}
+  .type-seg.dragging .type-pill{transition:none}
+  .type-btn{flex:1;display:flex;align-items:center;justify-content:center;color:var(--sub);position:relative;z-index:2;pointer-events:none}
+  .type-btn svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+  .type-btn.active{color:#FFF}
+  .amount-card{text-align:center}
+  .amount-card input{font-size:42px;font-weight:700;text-align:center;border:none;background:transparent;padding:6px 0}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chips:empty{display:none}
+  .chip{width:auto;font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--border);background:var(--input);color:var(--text);cursor:pointer}
+  .chip.on{background:var(--primary);color:#FFF;border-color:var(--primary)}
+  .tx-item{gap:12px}
+  .cat-dot{width:36px;height:36px;border-radius:50%;color:#FFF;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none}
+  #okPop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1100;pointer-events:none}
+  #okPop.show{display:flex}
+  #okPop svg{width:96px;height:96px;fill:var(--card);stroke:var(--green);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;border-radius:50%;box-shadow:0 10px 40px rgba(0,0,0,.25);animation:pop .5s ease both}
+  #okPop path{fill:none;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .4s .15s ease forwards}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+  @keyframes draw{to{stroke-dashoffset:0}}
 </style>
 </head>
 <body>
   <div id="toast"></div>
+  <div id="okPop"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg></div>
 
   <!-- PAGE 0: FORM -->
   <div id="entryView" class="view active">
@@ -162,17 +180,19 @@
       <button type="button" class="theme-btn" id="themeBtn" title="Toggle Dark Mode">🌙</button>
     </h2>
     <form id="txForm">
-      <div class="card">
-        <div class="label-row"><label>Type</label><span id="typeLabel" class="selected-pill">—</span></div>
-        <div id="typeContainer" class="type-grid"></div>
+      <div class="card amount-card">
+        <label>Amount</label>
+        <input type="number" id="amount" step="0.01" min="0" inputmode="decimal" placeholder="0" required>
       </div>
 
       <div class="card">
-        <div class="row">
-          <div class="group"><label>Date</label><input type="date" id="date" required></div>
-          <div class="group"><label>Amount</label><input type="number" id="amount" step="0.01" min="0" inputmode="decimal" placeholder="0.00" required></div>
-        </div>
-        <div class="group"><label>Category</label><select id="cata"></select></div>
+        <div class="label-row"><label>Type</label><span id="typeLabel" class="selected-pill">—</span></div>
+        <div id="typeContainer" class="type-seg"></div>
+      </div>
+
+      <div class="card">
+        <div class="group"><label>Date</label><input type="date" id="date" required></div>
+        <div class="group"><label>Category</label><div class="chips" id="quickCats"></div><select id="cata"></select></div>
         <div class="row">
           <div class="group"><label>From</label><select id="from"></select></div>
           <div class="group"><label>To</label><select id="to"></select></div>
@@ -477,16 +497,34 @@ function pickType(id, applyDefaults) {
   const name = t ? t['type name'] : '';
   $('typeLabel').textContent = name || '—';
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', String(b.dataset.id) === String(id)));
+  const ix = TYPES.findIndex(r => String(r.id) === String(id));
+  if ($('typePill') && ix >= 0) $('typePill').style.transform = `translateX(${ix * 100}%)`;
+  renderQuickCats();
   if (!applyDefaults) return;
   const k = name.toLowerCase(), b = bankId();
   if (k === 'expense') { $('from').value = ''; $('to').value = b; }
   else if (k === 'income' || k === 'other income') { $('from').value = b; $('to').value = ''; }
   else if (k === 'transfer') { $('from').value = b; $('to').value = b; }
 }
-$('typeContainer').addEventListener('click', e => {
-  const b = e.target.closest('.type-btn');
-  if (b) pickType(b.dataset.id, true);
-});
+(function initTypeSeg() {
+  const el = $('typeContainer'); let d = false;
+  function at(x, commit) {
+    const r = el.getBoundingClientRect(), n = TYPES.length, w = (r.width - 6) / n;
+    const rel = Math.max(0, Math.min(r.width - 6 - w, x - r.left - 3 - w / 2));
+    const i = Math.round(rel / w);
+    if (commit) {
+      el.classList.remove('dragging');
+      pickType(TYPES[i].id, String(TYPES[i].id) !== String(typeId));
+      return;
+    }
+    $('typePill').style.transform = `translateX(${rel}px)`;
+    document.querySelectorAll('.type-btn').forEach((b, k) => b.classList.toggle('active', k === i));
+  }
+  el.addEventListener('pointerdown', e => { if (!TYPES.length) return; d = true; el.classList.add('dragging'); el.setPointerCapture(e.pointerId); at(e.clientX, false); });
+  el.addEventListener('pointermove', e => { if (d) at(e.clientX, false); });
+  el.addEventListener('pointerup', e => { if (d) { d = false; at(e.clientX, true); } });
+  el.addEventListener('pointercancel', () => { d = false; el.classList.remove('dragging'); pickType(typeId, false); });
+})();
 function defaultType() { return TYPES.find(r => r['type name'].toLowerCase() === 'expense') || TYPES[0]; }
 
 function setEditUI(id) {
@@ -525,6 +563,7 @@ function startEditTx(t) {
   $('amount').value = t.amount;
   $('date').value = t.date;
   $('cata').value = t.cata ?? '';
+  renderQuickCats();
   $('from').value = t.from ?? '';
   $('to').value = t.to ?? '';
   $('remarks').value = t.remarks ?? '';
@@ -555,7 +594,9 @@ $('txForm').onsubmit = async e => {
   $('submitBtn').disabled = false;
   if (result.error) { showToast(result.error.message); return; }
   showToast(wasEdit ? 'Updated ✓' : 'Saved ✓');
+  okPop();
   clearForm();
+  $('amount').focus();
   loadAll();
 };
 
@@ -564,10 +605,9 @@ async function loadLists() {
   const [t, a, c] = await Promise.all([get('type'), get('accounts'), get('cata')]);
   if (t.error || a.error || c.error) { showToast('Error: ' + (t.error || a.error || c.error).message); return false; }
   TYPES = t.data; ACCS = a.data; CATS = c.data;
-  $('typeContainer').innerHTML = TYPES.map(r => {
-    const n = r['type name'];
-    return `<button type="button" class="type-btn" data-id="${r.id}" title="${esc(n)}">${getTypeIcon(n)}</button>`;
-  }).join('');
+  $('typeContainer').innerHTML = '<div class="type-pill" id="typePill"></div>' +
+    TYPES.map(r => `<div class="type-btn" data-id="${r.id}">${getTypeIcon(r['type name'])}</div>`).join('');
+  $('typePill').style.width = `calc((100% - 6px) / ${TYPES.length})`;
   fillSelect($('from'), ACCS, 'account name', 'None');
   fillSelect($('to'), ACCS, 'account name', 'None');
   fillSelect($('cata'), CATS, 'cata name', 'Select Category');
@@ -581,7 +621,7 @@ async function loadLists() {
 async function loadAll() {
   const r = await fetchAll();
   if (r.error) { ERR = r.error.message; ALL = []; }
-  else { ERR = ''; ALL = r.data; ALL.forEach(t => { t._e = effect(t); }); }
+  else { ERR = ''; ALL = r.data; ALL.forEach(t => { t._e = effect(t); }); renderQuickCats(); }
   renderDash();
 }
 
@@ -976,7 +1016,7 @@ function renderDash() {
       const sub = [nameOf(TYPES, 'type name', t.type), acc, t.remarks].filter(Boolean).join(' • ');
       html += `<div class="tx-swipe-wrap" data-id="${esc(t.id)}" data-plan="${t.plan ? '1' : '0'}">
         <div class="tx-swipe-bg"><span>${t.plan ? '✓ Make Real' : '⏳ Make Plan'}</span><span>Delete ✕</span></div>
-        <div class="tx-item">
+        <div class="tx-item"><div class="cat-dot" style="background:${catColor(title)}">${esc(title.charAt(0).toUpperCase())}</div>
           <div class="tx-left"><span class="tx-cata">${esc(title)} ${t.plan ? '<span class="exp-tag">Plan</span>' : ''}</span><span class="tx-sub">${esc(sub)}</span></div>
           <div class="tx-right"><span class="tx-amt" style="color:${color}">${sign}${fmt(t.amount)}</span></div>
         </div></div>`;
@@ -1047,6 +1087,22 @@ async function deleteTx(id) {
   const { error } = await deleteTransactionRow(id);
   if (error) { ALL = backup; renderDash(); showToast('Delete failed: ' + error.message); }
   else showToast('Deleted ✓');
+}
+
+/* ================= quick categories, category colors, saved check ================= */
+function renderQuickCats() {
+  const box = $('quickCats'); if (!box) return;
+  const c = new Map();
+  ALL.forEach(t => { if (t.cata != null && String(t.type) === String(typeId)) c.set(String(t.cata), (c.get(String(t.cata)) || 0) + 1); });
+  const top = [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(x => x[0]);
+  box.innerHTML = top.map(id => `<button type="button" class="chip${$('cata').value === id ? ' on' : ''}" data-id="${id}">${esc(nameOf(CATS, 'cata name', id))}</button>`).join('');
+}
+$('quickCats').onclick = e => { const b = e.target.closest('.chip'); if (b) { $('cata').value = b.dataset.id; renderQuickCats(); } };
+$('cata').onchange = renderQuickCats;
+const catColor = s => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) % 360; return 'hsl(' + h + ',60%,52%)'; };
+function okPop() {
+  const p = $('okPop'); p.classList.remove('show'); void p.offsetWidth; p.classList.add('show');
+  setTimeout(() => p.classList.remove('show'), 900);
 }
 
 /* ================= start ================= */
